@@ -1,24 +1,15 @@
 import { Link } from "react-router-dom";
-import { pluralize } from "../../utils/helpers"
+import { pluralize } from "../../utils/helpers";
 import { useStoreContext } from "../../utils/GlobalState";
 import { ADD_TO_CART, UPDATE_CART_QUANTITY } from "../../utils/actions";
 import { idbPromise } from "../../utils/helpers";
 
-function ProductItem(item) {
+const ProductItem = ({ _id, image, name, price, quantity }) => {
   const [state, dispatch] = useStoreContext();
-
-  const {
-    image,
-    name,
-    _id,
-    price,
-    quantity
-  } = item;
-
-  const { cart } = state
+  const { cart } = state;
 
   const addToCart = () => {
-    const itemInCart = cart.find((cartItem) => cartItem._id === _id)
+    const itemInCart = cart.find((cartItem) => cartItem._id === _id);
     if (itemInCart) {
       dispatch({
         type: UPDATE_CART_QUANTITY,
@@ -32,19 +23,16 @@ function ProductItem(item) {
     } else {
       dispatch({
         type: ADD_TO_CART,
-        product: { ...item, purchaseQuantity: 1 }
+        product: { _id, image, name, price, quantity, purchaseQuantity: 1 }
       });
-      idbPromise('cart', 'put', { ...item, purchaseQuantity: 1 });
+      idbPromise('cart', 'put', { _id, image, name, price, quantity, purchaseQuantity: 1 });
     }
-  }
+  };
 
   return (
     <div className="card px-1 py-1">
       <Link to={`/products/${_id}`}>
-        <img
-          alt={name}
-          src={`/images/${image}`}
-        />
+        <img alt={name} src={`/images/${image}`} />
         <p>{name}</p>
       </Link>
       <div>
@@ -54,6 +42,6 @@ function ProductItem(item) {
       <button onClick={addToCart}>Add to cart</button>
     </div>
   );
-}
+};
 
 export default ProductItem;

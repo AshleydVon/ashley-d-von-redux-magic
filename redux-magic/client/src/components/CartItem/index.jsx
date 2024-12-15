@@ -1,9 +1,8 @@
-import { useStoreContext } from "../../utils/GlobalState";
-import { REMOVE_FROM_CART, UPDATE_CART_QUANTITY } from "../../utils/actions";
-import { idbPromise } from "../../utils/helpers";
+import { useStoreContext } from '../../utils/GlobalState';
+import { REMOVE_FROM_CART, UPDATE_CART_QUANTITY } from '../../utils/actions';
+import { idbPromise } from '../../utils/helpers';
 
 const CartItem = ({ item }) => {
-
   const [, dispatch] = useStoreContext();
 
   const removeFromCart = item => {
@@ -12,7 +11,6 @@ const CartItem = ({ item }) => {
       _id: item._id
     });
     idbPromise('cart', 'delete', { ...item });
-
   };
 
   const onChange = (e) => {
@@ -23,7 +21,6 @@ const CartItem = ({ item }) => {
         _id: item._id
       });
       idbPromise('cart', 'delete', { ...item });
-
     } else {
       dispatch({
         type: UPDATE_CART_QUANTITY,
@@ -31,17 +28,13 @@ const CartItem = ({ item }) => {
         purchaseQuantity: parseInt(value)
       });
       idbPromise('cart', 'put', { ...item, purchaseQuantity: parseInt(value) });
-
     }
-  }
+  };
 
   return (
     <div className="flex-row">
       <div>
-        <img
-          src={`/images/${item.image}`}
-          alt=""
-        />
+        <img src={`/images/${item.image}`} alt="" />
       </div>
       <div>
         <div>{item.name}, ${item.price}</div>
@@ -53,17 +46,13 @@ const CartItem = ({ item }) => {
             value={item.purchaseQuantity}
             onChange={onChange}
           />
-          <span
-            role="img"
-            aria-label="trash"
-            onClick={() => removeFromCart(item)}
-          >
+          <span role="img" aria-label="trash" onClick={() => removeFromCart(item)}>
             🗑️
           </span>
         </div>
       </div>
     </div>
   );
-}
+};
 
 export default CartItem;

@@ -7,21 +7,12 @@ import CartItem from '../CartItem';
 import Auth from '../../utils/auth';
 import { useStoreContext } from '../../utils/GlobalState';
 import { TOGGLE_CART, ADD_MULTIPLE_TO_CART } from '../../utils/actions';
-import './style.css';
 
 const stripePromise = loadStripe('pk_test_TYooMQauvdEDq54NiTphI7jx');
 
 const Cart = () => {
   const [state, dispatch] = useStoreContext();
   const [getCheckout, { data }] = useLazyQuery(QUERY_CHECKOUT);
-
-  useEffect(() => {
-    if (data) {
-      stripePromise.then((res) => {
-        res.redirectToCheckout({ sessionId: data.checkout.session });
-      });
-    }
-  }, [data]);
 
   useEffect(() => {
     async function getCart() {
@@ -33,6 +24,14 @@ const Cart = () => {
       getCart();
     }
   }, [state.cart.length, dispatch]);
+
+  useEffect(() => {
+    if (data) {
+      stripePromise.then((res) => {
+        res.redirectToCheckout({ sessionId: data.checkout.session });
+      });
+    }
+  }, [data]);
 
   function toggleCart() {
     dispatch({ type: TOGGLE_CART });
@@ -48,7 +47,6 @@ const Cart = () => {
 
   function submitCheckout() {
     const productIds = [];
-
     state.cart.forEach((item) => {
       for (let i = 0; i < item.purchaseQuantity; i++) {
         productIds.push(item._id);
@@ -63,28 +61,22 @@ const Cart = () => {
   if (!state.cartOpen) {
     return (
       <div className="cart-closed" onClick={toggleCart}>
-        <span role="img" aria-label="trash">
-          🛒
-        </span>
+        <span role="img" aria-label="trash">🛒</span>
       </div>
     );
   }
 
   return (
     <div className="cart">
-      <div className="close" onClick={toggleCart}>
-        [close]
-      </div>
+      <div className="close" onClick={toggleCart}>[close]</div>
       <h2>Shopping Cart</h2>
       {state.cart.length ? (
         <div>
           {state.cart.map((item) => (
             <CartItem key={item._id} item={item} />
           ))}
-
           <div className="flex-row space-between">
             <strong>Total: ${calculateTotal()}</strong>
-
             {Auth.loggedIn() ? (
               <button onClick={submitCheckout}>Checkout</button>
             ) : (
@@ -94,9 +86,7 @@ const Cart = () => {
         </div>
       ) : (
         <h3>
-          <span role="img" aria-label="shocked">
-            😱
-          </span>
+          <span role="img" aria-label="shocked">😱</span>
           You haven't added anything to your cart yet!
         </h3>
       )}

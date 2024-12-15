@@ -1,17 +1,15 @@
 import { useEffect } from 'react';
-import ProductItem from '../ProductItem';
-import { useStoreContext } from '../../utils/GlobalState';
-import { UPDATE_PRODUCTS } from '../../utils/actions';
 import { useQuery } from '@apollo/client';
 import { QUERY_PRODUCTS } from '../../utils/queries';
+import { useStoreContext } from '../../utils/GlobalState';
+import { UPDATE_PRODUCTS } from '../../utils/actions';
+import ProductItem from '../ProductItem';
 import { idbPromise } from '../../utils/helpers';
 import spinner from '../../assets/spinner.gif';
 
-function ProductList() {
+const ProductList = () => {
   const [state, dispatch] = useStoreContext();
-
   const { currentCategory } = state;
-
   const { loading, data } = useQuery(QUERY_PRODUCTS);
 
   useEffect(() => {
@@ -37,7 +35,6 @@ function ProductList() {
     if (!currentCategory) {
       return state.products;
     }
-
     return state.products.filter(
       (product) => product.category._id === currentCategory
     );
@@ -65,6 +62,6 @@ function ProductList() {
       {loading ? <img src={spinner} alt="loading" /> : null}
     </div>
   );
-}
+};
 
 export default ProductList;

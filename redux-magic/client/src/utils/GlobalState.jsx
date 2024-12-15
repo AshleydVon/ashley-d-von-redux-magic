@@ -1,23 +1,21 @@
-import { createContext, useContext, useReducer } from "react";
-import { reducer } from './reducers'
+import { createContext, useContext, useReducer } from 'react';
+import { reducer } from './reducers';
 
 const StoreContext = createContext();
-const { Provider } = StoreContext;
 
-const StoreProvider = ({ value = [], ...props }) => {
-  const [state, dispatch] = useReducer(reducer, {
-    products: [],
-    cart: [],
-    cartOpen: false,
-    categories: [],
-    currentCategory: '',
-  });
-
-  return <Provider value={[state, dispatch]} {...props} />;
+const initialState = {
+  products: [],
+  categories: [],
+  cart: [],
+  cartOpen: false,
+  currentCategory: ''
 };
 
-const useStoreContext = () => {
+export const StoreProvider = ({ children }) => {
+  const [state, dispatch] = useReducer(reducer, initialState);
+  return <StoreContext.Provider value={[state, dispatch]}>{children}</StoreContext.Provider>;
+};
+
+export const useStoreContext = () => {
   return useContext(StoreContext);
 };
-
-export { StoreProvider, useStoreContext };

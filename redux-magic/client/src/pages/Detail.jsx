@@ -25,7 +25,6 @@ function Detail() {
   const { products, cart } = state;
 
   useEffect(() => {
-    // already in global store
     if (products.length) {
       const product = products.find((product) => product._id === id);
 
@@ -39,7 +38,6 @@ function Detail() {
       
       setCurrentProduct(item);
     }
-    // retrieved from server
     else if (data) {
       dispatch({
         type: UPDATE_PRODUCTS,
@@ -50,7 +48,6 @@ function Detail() {
         idbPromise('products', 'put', product);
       });
     }
-    // get cache from idb
     else if (!loading) {
       idbPromise('products', 'get').then((indexedProducts) => {
         dispatch({

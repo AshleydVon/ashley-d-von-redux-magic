@@ -1,139 +1,149 @@
+const { AuthenticationError } = require('apollo-server-express');
 const { User, Product, Category, Order } = require('../models');
-const { signToken, AuthenticationError } = require('../utils/auth');
-const stripe = require('stripe')('sk_test_4eC39HqLyjWDarjtT1zdp7dc');
+const { signToken } = require('../utils/auth');
 
 const resolvers = {
   Query: {
     categories: async () => {
-      return await Category.find();
+      try {
+        return await Category.find();
+      } catch (error) {
+        console.error("Error in categories query:", error);
+        throw new Error("Failed to fetch categories");
+      }
     },
+
     products: async (parent, { category, name }) => {
-      const params = {};
-
-      if (category) {
-        params.category = category;
+      try {
+        const params = {};
+        if (category) {
+          params.category = category;
+        }
+        if (name) {
+          params.name = {
+            $regex: name,
+            $options: "i"
+          };
+        }
+        return await Product.find(params).populate('category');
+      } catch (error) {
+        console.error("Error in products query:", error);
+        throw new Error("Failed to fetch products");
       }
-
-      if (name) {
-        params.name = {
-          $regex: name
-        };
-      }
-
-      return await Product.find(params).populate('category');
     },
+
     product: async (parent, { _id }) => {
-      return await Product.findById(_id).populate('category');
+      try {
+        return await Product.findById(_id).populate('category');
+      } catch (error) {
+        console.error("Error in product query:", error);
+        throw new Error("Failed to fetch product");
+      }
     },
+
     user: async (parent, args, context) => {
       if (context.user) {
         const user = await User.findById(context.user._id).populate({
           path: 'orders.products',
           populate: 'category'
         });
-
-        user.orders.sort((a, b) => b.purchaseDate - a.purchaseDate);
-
         return user;
       }
-
-      throw AuthenticationError;
+      throw new AuthenticationError('Not logged in');
     },
+
     order: async (parent, { _id }, context) => {
       if (context.user) {
         const user = await User.findById(context.user._id).populate({
           path: 'orders.products',
           populate: 'category'
         });
-
         return user.orders.id(_id);
       }
-
-      throw AuthenticationError;
-    },
-    checkout: async (parent, args, context) => {
-      const url = new URL(context.headers.referer).origin;
-      const order = new Order({ products: args.products });
-      const line_items = [];
-
-      const { products } = await order.populate('products');
-
-      for (let i = 0; i < products.length; i++) {
-        const product = await stripe.products.create({
-          name: products[i].name,
-          description: products[i].description,
-          images: [`${url}/images/${products[i].image}`]
-        });
-
-        const price = await stripe.prices.create({
-          product: product.id,
-          unit_amount: products[i].price * 100,
-          currency: 'usd',
-        });
-
-        line_items.push({
-          price: price.id,
-          quantity: 1
-        });
-      }
-
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items,
-        mode: 'payment',
-        success_url: `${url}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${url}/`
-      });
-
-      return { session: session.id };
+      throw new AuthenticationError('Not logged in');
     }
   },
+
+  Category: {
+    products: async (parent) => {
+      try {
+        return await Product.find({ category: parent._id });
+      } catch (error) {
+        console.error("Error in Category.products resolver:", error);
+        throw new Error("Failed to fetch products for category");
+      }
+    }
+  },
+
   Mutation: {
     addUser: async (parent, args) => {
-      const user = await User.create(args);
-      const token = signToken(user);
-
-      return { token, user };
+      try {
+        const user = await User.create(args);
+        const token = signToken(user);
+        return { token, user };
+      } catch (error) {
+        console.error("Error in addUser mutation:", error);
+        throw new Error("Failed to create user");
+      }
     },
+
+    login: async (parent, { email, password }) => {
+      try {
+        const user = await User.findOne({ email });
+        if (!user) {
+          throw new AuthenticationError('Incorrect credentials');
+        }
+        const correctPw = await user.isCorrectPassword(password);
+        if (!correctPw) {
+          throw new AuthenticationError('Incorrect credentials');
+        }
+        const token = signToken(user);
+        return { token, user };
+      } catch (error) {
+        console.error("Error in login mutation:", error);
+        throw error;
+      }
+    },
+
     addOrder: async (parent, { products }, context) => {
       if (context.user) {
         const order = new Order({ products });
-
-        await User.findByIdAndUpdate(context.user._id, { $push: { orders: order } });
-
+        await User.findByIdAndUpdate(context.user._id, {
+          $push: { orders: order }
+        });
         return order;
       }
-
-      throw AuthenticationError;
+      throw new AuthenticationError('Not logged in');
     },
-    updateUser: async (parent, args, context) => {
-      if (context.user) {
-        return await User.findByIdAndUpdate(context.user._id, args, { new: true });
+
+    addProduct: async (parent, { name, description, price, quantity, image, category }) => {
+      try {
+        const product = await Product.create({
+          name,
+          description,
+          price,
+          quantity,
+          image,
+          category
+        });
+        return product;
+      } catch (error) {
+        console.error("Error in addProduct mutation:", error);
+        throw new Error("Failed to add product");
       }
-
-      throw AuthenticationError;
     },
+
     updateProduct: async (parent, { _id, quantity }) => {
-      const decrement = Math.abs(quantity) * -1;
-
-      return await Product.findByIdAndUpdate(_id, { $inc: { quantity: decrement } }, { new: true });
-    },
-    login: async (parent, { email, password }) => {
-      const user = await User.findOne({ email });
-
-      if (!user) {
-        throw AuthenticationError;
+      try {
+        return await Product.findByIdAndUpdate(
+          _id,
+          { $set: { quantity } },
+          { new: true }
+        );
+      } catch (error) {
+        console.error("Error in updateProduct mutation:", error);
+        throw new Error("Failed to update product");
       }
-
-      const correctPw = await user.isCorrectPassword(password);
-
-      if (!correctPw) {
-        throw AuthenticationError;
-      }
-
-      const token = signToken(user);
-
-      return { token, user };
     }
   }
 };
